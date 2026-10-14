@@ -1,0 +1,50 @@
+# ==========================================
+# Python Runtime & Dependencies
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.env
+.env.*
+lib/
+lib64/
+
+# ==========================================
+# High-Load Core & Testing Suite (Pytest/Coverage)
+# ==========================================
+# Жестко изолируем локальный кэш, приводивший к Permission denied
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cache
+
+# ==========================================
+# Logs & Database Dumps (Docker/Redis/App)
+# ==========================================
+*.log
+log/
+logs/
+*.sqlite3
+*.db
+dump.rdb
+
+# ==========================================
+# IDE & System Configuration Files
+# ==========================================
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+Thumbs.db

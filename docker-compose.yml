@@ -1,0 +1,92 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: marketplace-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_MULTIPLE_DATABASES: auth_db,auth_db_test,user_db,user_db_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db:/docker-entrypoint-initdb.d
+    command: postgres -c max_connections=1000 -c shared_buffers=512MB -c work_mem=16MB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: marketplace-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/auth_db
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/auth_db_test
+      REDIS_URL: redis://marketplace-redis:6379/0
+      LOG_LEVEL: DEBUG
+      LOG_STDOUT: "true"
+      ENVIRONMENT: development
+      KAFKA_ENABLED: "false"
+      INTERNAL_ALLOWED_IPS: |
+        ["127.0.0.1", "172.19.0.5", "172.19.0.0/16"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/auth-service:/app
+      - /app/__pycache__
+    command: gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --backlog 4096 --timeout 30 --keep-alive 2 --max-requests 100000
+    restart: unless-stopped
+
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/user_db
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/user_db_test
+      REDIS_URL: redis://marketplace-redis:6379/1
+      LOG_LEVEL: DEBUG
+      LOG_STDOUT: "true"
+      ENVIRONMENT: development
+      KAFKA_ENABLED: "false"
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/user-service:/app
+      - /app/__pycache__
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --limit-concurrency 2048 --backlog 2048 --limit-max-requests 50000
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
