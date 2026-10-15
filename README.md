@@ -237,7 +237,7 @@ pytest-cov==4.1.0
 freezegun==1.5.1
 factory-boy==3.3.0
 
-Архитектура проекта соответствует уровню **Production-Ready:
+Архитектура проекта соответствует уровню Production-Ready:
 High-Load & Resilience: Спроектирована под высокую нагрузку и выживаемость при авариях. Реализованы CQRS, механизмы деградации (Graceful Degradation) и фоллбэков (Fallback API).
 Security & Compliance: Обеспечена эшелонированная защита, соответствие требованиям GDPR, ролевая модель RBAC и полноценный Audit Trail.
 Quality Assurance: Тестовая пирамида покрывает все уровни — от Unit-тестов до Resilience и Chaos Engineering тестов.
